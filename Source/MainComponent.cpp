@@ -7,11 +7,45 @@
 #include "MainComponent.h"
 
 //==============================================================================
+
+void MainComponent::sliderValueChanged (Slider* slider)
+{
+    if (slider == &freqSlider){
+        frequency = freqSlider.getValue();
+    } else if (slider == &ampSlider){
+        amplitude = ampSlider.getValue();
+    }
+}
+
+void MainComponent::updateFrequency(){
+    
+    increment = frequency * wtSize / currentSampleRate;
+    phase = fmod((phase + increment), wtSize);
+    
+}
+
+
 MainComponent::MainComponent()
 {
-    // Make sure you set the size of the component after
-    // you add any child components.
+    
     setSize (800, 600);
+    
+    freqSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
+    freqSlider.setRange(50.0, 500.0);
+    freqSlider.setTextValueSuffix("Hz");
+    freqSlider.addListener(this);
+    freqSlider.setValue(200);
+    addAndMakeVisible(freqSlider);
+    freqLabel.setText("Frequency:", dontSendNotification);
+    freqLabel.attachToComponent(&freqSlider, true);
+    
+    ampSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
+    ampSlider.setRange(0.0, 1.0);
+    ampSlider.addListener(this);
+    ampSlider.setValue(0.0);
+    addAndMakeVisible(ampSlider);
+    ampLabel.setText("Amplitude:", dontSendNotification);
+    ampLabel.attachToComponent(&ampSlider, true);
     
     // specify the number of input and output channels that we want to open
     setAudioChannels (2, 2);
@@ -26,11 +60,11 @@ MainComponent::~MainComponent()
 //==============================================================================
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
 {
-    frequency = 440;
+    frequency = freqSlider.getValue();
     phase = 0;
     wtSize = 1024;
-    increment = frequency * wtSize / sampleRate;
-    amplitude = 0.25;
+    amplitude = ampSlider.getValue();
+    currentSampleRate = sampleRate;
     
     for (int i = 0; i < wtSize; i++)
     {
@@ -49,7 +83,7 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
     {
         leftSpeaker[sample] = waveTable[(int)phase] * amplitude;
         rightSpeaker[sample] = waveTable[(int)phase] * amplitude;
-        phase = fmod((phase + increment), wtSize);
+        updateFrequency();
         
     }
     
@@ -78,8 +112,10 @@ void MainComponent::paint (Graphics& g)
 
 void MainComponent::resized()
 {
-    // This is called when the MainContentComponent is resized.
-    // If you add any child components, this is where you should
-    // update their positions.
+    const int labelSpace = 100;
+    freqSlider.setBounds(labelSpace, 20, getWidth() - 100, 20);
+    ampSlider.setBounds(labelSpace, 50, getWidth() - 100, 50);
+    
+    
 }
 
